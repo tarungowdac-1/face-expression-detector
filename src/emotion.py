@@ -8,10 +8,10 @@ MODEL_PATH = os.path.join(BASE_DIR, "models", "emotion_model.keras")
 
 EMOTIONS = ["Angry", "Disgust", "Fear", "Happy", "Sad", "Surprise", "Neutral"]
 
-# 1. Load your Keras CNN model
+# Load model once when server starts
 model = tf.keras.models.load_model(MODEL_PATH)
 
-# 2. Load OpenCV's built-in face detector
+# Load Haar Cascade face detector
 face_cascade = cv2.CascadeClassifier(
     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
@@ -25,33 +25,44 @@ def predict_emotion(image_bytes):
   if frame is None:
     return {"error": "Invalid image"}
 
-  # Convert full frame to grayscale
+  # Convert frame to grayscale
   gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-  # Detect faces in the frame
+  # Detect faces
   faces = face_cascade.detectMultiScale(
       gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30)
   )
 
-  # Fallback: If no face detected, fall back to center/full crop
+  # Edge case: No face detected in image
   if len(faces) == 0:
-    face_roi = gray
-  else:
-    # Get the bounding box of the largest face detected
-    x, y, w, h = max(faces, key=lambda rect: rect[2] * rect[3])
-    face_roi = gray[y : y + h, x : x + w]
+    return {
+        "emotion": "No Face Detected",
+        "confidence": 0.0,
+        "error": "No face found in frame",
+    }
 
-  # Resize ONLY the cropped face ROI to 48x48
+  # Isolate largest face and square the crop region
+  x, y, w, h = max(faces, key=lambda rect: rect[2] * rect[3])
+  size = max(w, h)
+  margin = int(size * 0.1)
+
+  y1 = max(0, y - margin)
+  y2 = min(frame.shape[0], y + h + margin)
+  x1 = max(0, x - margin)
+  x2 = min(frame.shape[1], x + w + margin)
+
+  face_roi = gray[y1:y2, x1:x2]
+
+  # Equalize contrast & normalize image
+  face_roi = cv2.equalizeHist(face_roi)
   face = cv2.resize(face_roi, (48, 48))
-
-  # Normalize pixels (0.0 to 1.0)
   face = face / 255.0
 
-  # Reshape to match model input (1, 48, 48, 1)
+  # Reshape for Keras (1, 48, 48, 1)
   face = np.expand_dims(face, axis=0)
   face = np.expand_dims(face, axis=-1)
 
-  # Make prediction
+  # Predict
   prediction = model.predict(face, verbose=0)
   emotion_index = np.argmax(prediction)
   confidence = float(np.max(prediction))
