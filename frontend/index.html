@@ -1,70 +1,73 @@
 <!DOCTYPE html>
-
-<html>
-
+<html lang="en">
 <head>
-
-<title>AI Face Emotion Detector</title>
-
-<link rel="stylesheet" href="style.css">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Real-Time Emotion Detector</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 </head>
-
-
 <body>
+  <div class="app-container">
+    <header class="header">
+      <div class="logo-tag">
+        <span class="pulse-dot"></span> AI Vision Lab
+      </div>
+      <h1>Emotion Detector</h1>
+      <p>Real-time facial expression analysis powered by Deep Learning</p>
+    </header>
 
+    <main class="main-content">
+      <!-- Camera Feed Card -->
+      <div class="card camera-card">
+        <div class="video-wrapper">
+          <video id="video" autoplay playsinline muted></video>
+          <div class="camera-overlay" id="overlay">
+            <i class="fas fa-video-slash"></i>
+            <p>Camera is paused</p>
+          </div>
+          <span class="status-badge" id="statusBadge">
+            <span class="badge-dot"></span> Live
+          </span>
+        </div>
 
-<h1>🧠 AI Face Emotion Detector</h1>
+        <div class="controls-bar">
+          <button id="toggleCamBtn" class="btn btn-primary">
+            <i class="fas fa-power-off"></i> Toggle Camera
+          </button>
+          <button id="switchCamBtn" class="btn btn-secondary">
+            <i class="fas fa-sync"></i> Flip Camera
+          </button>
+        </div>
+      </div>
 
+      <!-- Prediction Results Card -->
+      <div class="card result-card">
+        <div class="result-header">
+          <h3>Detected Emotion</h3>
+        </div>
 
-<div class="container">
+        <div class="emoji-display" id="emojiDisplay">
+          <span class="emoji" id="emojiIcon">😶</span>
+        </div>
 
+        <div class="emotion-title" id="emotionTitle">Waiting...</div>
 
-<div class="video-box">
+        <div class="confidence-container">
+          <div class="confidence-labels">
+            <span>Confidence</span>
+            <span id="confidenceValue">0%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progressBar"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
 
-<video id="video" autoplay></video>
-
-</div>
-
-
-<div class="status">
-🟢 Camera Active
-</div>
-
-
-
-<div class="result-card">
-
-
-<div id="emotion">
-Waiting...
-</div>
-
-
-<div id="confidence">
-Confidence: 0%
-</div>
-
-
-<div class="progress">
-
-<div 
-class="progress-bar"
-id="bar">
-</div>
-
-</div>
-
-
-</div>
-
-
-</div>
-
-
-<script src="script.js"></script>
-
-
+  <script src="script.js"></script>
 </body>
-
 </html>
