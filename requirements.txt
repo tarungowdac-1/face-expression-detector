@@ -1,5 +1,5 @@
-tensorflow
-opencv-python
+tensorflow-cpu
+opencv-python-headless
 mediapipe
 numpy
 pandas
@@ -7,3 +7,4 @@ matplotlib
 scikit-learn
 pillow
 tqdm
+gunicorn
