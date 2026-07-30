@@ -1,28 +1,20 @@
 const video = document.getElementById("video");
-const emotionText = document.getElementById("emotion");
-const confidenceText = document.getElementById("confidence");
-const bar = document.getElementById("bar");
+const overlay = document.getElementById("overlay");
+const toggleCamBtn = document.getElementById("toggleCamBtn");
+const switchCamBtn = document.getElementById("switchCamBtn");
 
-// Backend API Endpoint
+const emojiIcon = document.getElementById("emojiIcon");
+const emojiDisplay = document.getElementById("emojiDisplay");
+const emotionTitle = document.getElementById("emotionTitle");
+const confidenceValue = document.getElementById("confidenceValue");
+const progressBar = document.getElementById("progressBar");
+
 const API_URL = "https://face-expression-detector.onrender.com/predict";
 
-// Start webcam stream
-navigator.mediaDevices
-  .getUserMedia({ video: true })
-  .then((stream) => {
-    video.srcObject = stream;
-    // Start processing loop once webcam starts
-    sendFrame();
-  })
-  .catch((error) => {
-    console.error("Camera access error:", error);
-  });
+let currentStream = null;
+let isCamActive = false;
+let facingMode = "user"; // 'user' (front) or 'environment' (back)
 
-// Create invisible canvas for capturing frames
-const canvas = document.createElement("canvas");
-const context = canvas.getContext("2d");
-
-// Emotion emoji mapping
 const icons = {
   Happy: "😊",
   Sad: "😢",
@@ -33,11 +25,60 @@ const icons = {
   Disgust: "🤢"
 };
 
+// Start or Stop Camera
+async function startCamera() {
+  if (currentStream) {
+    currentStream.getTracks().forEach((track) => track.stop());
+  }
+
+  try {
+    currentStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: facingMode, width: { ideal: 640 }, height: { ideal: 480 } }
+    });
+    video.srcObject = currentStream;
+    isCamActive = true;
+    overlay.classList.remove("active");
+    sendFrame();
+  } catch (err) {
+    console.error("Camera access failed:", err);
+    overlay.classList.add("active");
+    isCamActive = false;
+  }
+}
+
+function stopCamera() {
+  if (currentStream) {
+    currentStream.getTracks().forEach((track) => track.stop());
+  }
+  isCamActive = false;
+  overlay.classList.add("active");
+}
+
+toggleCamBtn.addEventListener("click", () => {
+  if (isCamActive) {
+    stopCamera();
+  } else {
+    startCamera();
+  }
+});
+
+switchCamBtn.addEventListener("click", () => {
+  facingMode = facingMode === "user" ? "environment" : "user";
+  if (isCamActive) {
+    startCamera();
+  }
+});
+
+// Canvas Setup
+const canvas = document.createElement("canvas");
+const context = canvas.getContext("2d");
+
 function sendFrame() {
+  if (!isCamActive) return;
+
   if (video.readyState === video.HAVE_ENOUGH_DATA) {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob((blob) => {
@@ -48,30 +89,35 @@ function sendFrame() {
         method: "POST",
         body: formData,
       })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          return response.json();
-        })
+        .then((res) => res.json())
         .then((data) => {
-          if (data.emotion) {
-            const emoji = icons[data.emotion] || "😐";
-            emotionText.innerHTML = `${emoji} ${data.emotion}`;
-            confidenceText.innerHTML = `Confidence: ${data.confidence}%`;
-            bar.style.width = `${data.confidence}%`;
+          if (data.emotion && isCamActive) {
+            updateUI(data.emotion, data.confidence);
           }
         })
-        .catch((error) => {
-          console.error("Prediction error:", error);
-        })
+        .catch((err) => console.error("API error:", err))
         .finally(() => {
-          // Send next frame 1 second AFTER previous request finishes
-          setTimeout(sendFrame, 1000);
+          if (isCamActive) setTimeout(sendFrame, 800);
         });
-    }, "image/jpeg", 0.7); // 0.7 compression speeds up network upload!
+    }, "image/jpeg", 0.85);
   } else {
-    // Retry in 500ms if video frame isn't ready yet
-    setTimeout(sendFrame, 500);
+    setTimeout(sendFrame, 300);
   }
 }
+
+function updateUI(emotion, confidence) {
+  const emoji = icons[emotion] || "😐";
+
+  if (emotionTitle.innerText !== emotion) {
+    emojiDisplay.classList.add("bounce");
+    setTimeout(() => emojiDisplay.classList.remove("bounce"), 300);
+  }
+
+  emojiIcon.innerText = emoji;
+  emotionTitle.innerText = emotion;
+  confidenceValue.innerText = `${confidence}%`;
+  progressBar.style.width = `${confidence}%`;
+}
+
+// Auto-start on launch
+startCamera();
